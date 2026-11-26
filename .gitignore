@@ -1,0 +1,12 @@
+node_modules
+dist
+.tmp-inspect
+*.local
+
+# Unused heavy references and raw media
+for reference/
+raw-assets/
+*.mp4
+ветка_фонари_фото.jpg
+public/assets/*.png
+public/assets/*.jpg
