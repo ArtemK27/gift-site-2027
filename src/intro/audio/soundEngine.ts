@@ -15,6 +15,7 @@ class SoundEngine {
   private noiseBuffer: AudioBuffer | null = null;
   private muted = false;
   private lastFrostMs = 0;
+  private lastMochiMs = 0;
   private listeners = new Set<MuteListener>();
 
   unlock(): void {
@@ -123,6 +124,80 @@ class SoundEngine {
     const idx = Math.max(0, Math.min(PENTATONIC_HZ.length - 1, Math.floor(normalizedX * PENTATONIC_HZ.length)));
     const hz = PENTATONIC_HZ[idx];
     this.scheduleBell(audio.ctx, audio.out, hz, audio.ctx.currentTime, 0.1, 1.15);
+  }
+
+  /**
+   * Warm, muffled velvet cushion squish (no cartoon bubble/boing sweep).
+   * Throttled with a gentle cooldown so rapid multi-touch never clips.
+   */
+  playMochiSquish(intensity = 0.55): void {
+    const nowMs = performance.now();
+    if (nowMs - this.lastMochiMs < 145) return;
+    this.lastMochiMs = nowMs;
+
+    const audio = this.getReady();
+    if (!audio) return;
+    const { ctx, out } = audio;
+    const t = ctx.currentTime;
+    const k = Math.max(0.15, Math.min(1, intensity));
+
+    // 1) Soft low-mid velvet cushion thump (gentle downward settle, heavily low-passed)
+    const bodyOsc = ctx.createOscillator();
+    bodyOsc.type = 'sine';
+    bodyOsc.frequency.setValueAtTime(148 + k * 24, t);
+    bodyOsc.frequency.exponentialRampToValueAtTime(92, t + 0.125);
+
+    const bodyFilter = ctx.createBiquadFilter();
+    bodyFilter.type = 'lowpass';
+    bodyFilter.frequency.setValueAtTime(320 + k * 140, t);
+    bodyFilter.Q.value = 0.7;
+
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(0.0001, t);
+    bodyGain.gain.exponentialRampToValueAtTime(0.044 + k * 0.048, t + 0.018);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.155);
+
+    bodyOsc.connect(bodyFilter).connect(bodyGain).connect(out);
+    bodyOsc.start(t);
+    bodyOsc.stop(t + 0.17);
+
+    // 2) Subtle warm plush harmonic breath
+    const warmOsc = ctx.createOscillator();
+    warmOsc.type = 'triangle';
+    warmOsc.frequency.setValueAtTime(226 + k * 34, t);
+    warmOsc.frequency.exponentialRampToValueAtTime(178, t + 0.095);
+
+    const warmFilter = ctx.createBiquadFilter();
+    warmFilter.type = 'lowpass';
+    warmFilter.frequency.setValueAtTime(420, t);
+
+    const warmGain = ctx.createGain();
+    warmGain.gain.setValueAtTime(0.0001, t);
+    warmGain.gain.exponentialRampToValueAtTime(0.012 + k * 0.014, t + 0.02);
+    warmGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.115);
+
+    warmOsc.connect(warmFilter).connect(warmGain).connect(out);
+    warmOsc.start(t);
+    warmOsc.stop(t + 0.13);
+
+    // 3) Delicate powdered-mochi velvet friction whisper
+    if (this.noiseBuffer) {
+      const noiseSrc = ctx.createBufferSource();
+      noiseSrc.buffer = this.noiseBuffer;
+
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(740 + k * 240, t);
+      noiseFilter.Q.value = 1.15;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.0001, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.016 + k * 0.024, t + 0.022);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.135);
+
+      noiseSrc.connect(noiseFilter).connect(noiseGain).connect(out);
+      noiseSrc.start(t, Math.random() * 0.45, 0.15);
+    }
   }
 
   playGlitchHijack(): void {

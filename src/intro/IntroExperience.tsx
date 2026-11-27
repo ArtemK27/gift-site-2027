@@ -7,6 +7,7 @@ import { soundEngine } from './audio/soundEngine';
 import { FrostWindowScene } from './scenes/frostWindow/FrostWindowScene';
 import { WinterScrollScene } from './scenes/winterScroll/WinterScrollScene';
 import { CrystalChimesScene } from './scenes/crystalChimes/CrystalChimesScene';
+import { MochiCatScene } from './scenes/mochiCat/MochiCatScene';
 import { SoundToggle } from './components/SoundToggle';
 import { SnowParticles } from './components/SnowParticles';
 import { DebugSceneNav } from './components/DebugSceneNav';
@@ -96,6 +97,9 @@ export function IntroExperience({
 
       {/* Step 2: Interactive Crystal Ornaments on Gold Threads */}
       <CrystalChimesScene />
+
+      {/* Step 3: Tactile Soft-Body Jelly Mochi Cat */}
+      <MochiCatScene />
     </main>
   );
 }
